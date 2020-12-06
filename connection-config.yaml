@@ -1,2 +1,5 @@
 ip: 127.0.0.1
 port: 8081
+timeout: 0.1
+logging: INFO #DEBUG, INFO, WARN, ERROR
+name: BOT NAME
