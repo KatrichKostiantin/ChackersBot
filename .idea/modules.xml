@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/ChackersBot.iml" filepath="$PROJECT_DIR$/.idea/ChackersBot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../CheckersPy/.idea/CheckersPy.iml" filepath="$PROJECT_DIR$/../CheckersPy/.idea/CheckersPy.iml" />
     </modules>
   </component>
 </project>

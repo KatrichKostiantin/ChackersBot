@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import random
+import threading
 
 import aiohttp
 
@@ -15,19 +17,20 @@ class Gamer:
         self._session = aiohttp.ClientSession()
         self._game = game
         self._loop = loop
-
+        logging.basicConfig(level=logging.INFO)
 
     async def _prepare_player(self, team_name):
+        logging.info(f'Prepare bot name:{team_name}')
         async with self._session.post(
                 f'{self._api_url}/game',
                 params={'team_name': team_name}
         ) as resp:
             res = (await resp.json())['data']
-            self._color = res['color'],
+            self._color = res['color']
             self._token = res['token']
+            logging.info(f"The bot was prepared. Bot color: {self._color}")
 
-
-    async def _make_move(self, player, move):
+    async def _make_move(self, move):
         json = {'move': move}
         headers = {'Authorization': f'Token {self._token}'}
         async with self._session.post(
@@ -36,22 +39,51 @@ class Gamer:
                 headers=headers
         ) as resp:
             resp = (await resp.json())['data']
-            logging.info(f'Player {player} made move {move}, response: {resp}')
-
-    #current_game_progress = await self._get_game()
-    #is_finished = current_game_progress['is_finished']
-    #is_started = current_game_progress['is_started']
-
+            logging.info(f'Response : {resp}')
 
     async def _get_progress_game(self):
         async with self._session.get(f'{self._api_url}/game') as resp:
             return (await resp.json())['data']
 
     def start(self):
-        self._prepare_player('BOT NAME')
-        board = self._game.board
-        self._game.board = board
+        asyncio.run_coroutine_threadsafe(self.start_playing(), self._loop)
 
-if __name__ == '__main__':
-    gamer = Gamer(asyncio.get_event_loop())
-    gamer.start()
+    async def start_playing(self):
+        await self._prepare_player('BOT NAME')
+        while True:
+            current_game_progress = await self._get_progress_game()
+            is_finished = current_game_progress['is_finished']
+            if is_finished:
+                logging.info("Game is finished")
+                break
+
+            is_started = current_game_progress['is_started']
+            if current_game_progress['whose_turn'] == self._color:
+                await self.move(current_game_progress)
+            elif is_started:
+                await asyncio.sleep(0.10)
+            else:
+                logging.info("Game not started")
+                await asyncio.sleep(1.00)
+
+        await self._session.close()
+
+    async def move(self, current_game_progress):
+        if current_game_progress['whose_turn'] != self._color:
+            logging.error("Not my turn")
+            return
+        self.read_opponent_move(current_game_progress)
+
+        move = random.choice(self._game.get_possible_moves())
+
+
+        await asyncio.sleep(0.50)
+        self._game.move(move)
+        await self._make_move(move)
+
+    def read_opponent_move(self, current_game_progress):
+        opponent_move = current_game_progress['last_move']
+        if opponent_move is not None:
+            if opponent_move['player'] != self._color:
+                for move in opponent_move['last_moves']:
+                    self._game.move(move)
