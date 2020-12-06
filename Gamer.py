@@ -5,6 +5,7 @@ import threading
 
 import aiohttp
 
+from Minimax import Minimax
 from monkey_patched.game import Game
 
 # Init components
@@ -44,7 +45,7 @@ class Gamer:
 
     async def _get_progress_game(self):
         async with self._session.get(f'{self._api_url}/game') as resp:
-            logging.debug(f'Response : {resp}')
+            logging.debug(f'Response status: {resp.status}')
             return (await resp.json())['data']
 
     def start(self):
@@ -77,9 +78,8 @@ class Gamer:
             return
         self.read_opponent_move(current_game_progress)
 
-        move = random.choice(self._game.get_possible_moves())
-        await asyncio.sleep(0.50)
-
+        move = self.find_best_move(current_game_progress['available_time'])
+        #move = random.choice(self._game.get_possible_moves())
         logging.debug(f"Add move ({move}) to own game")
         self._game.move(move)
         await self._make_move(move)
@@ -92,3 +92,7 @@ class Gamer:
             if opponent_move['player'] != self._color:
                 for move in opponent_move['last_moves']:
                     self._game.move(move)
+
+    def find_best_move(self, available_time):
+        logging.info(f"Try find best move with available_time = {available_time}")
+        return Minimax().find_best_move(available_time, self._game)
