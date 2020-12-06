@@ -12,8 +12,8 @@ game = Game()
 
 
 class Gamer:
-    def __init__(self, loop):
-        self._api_url = 'http://localhost:8081'
+    def __init__(self, connection_config, loop):
+        self._api_url = f"http://{connection_config['ip']}:{connection_config['port']}"
         self._session = aiohttp.ClientSession()
         self._game = game
         self._loop = loop
@@ -62,9 +62,6 @@ class Gamer:
                 await self.move(current_game_progress)
             elif is_started:
                 await asyncio.sleep(0.10)
-            else:
-                logging.info("Game not started")
-                await asyncio.sleep(1.00)
 
         await self._session.close()
 
