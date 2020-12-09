@@ -28,7 +28,85 @@ class Node:
                     res += 1
                 else:
                     res -= 1
+
         self.value = res
+
+    def curr_stage(self):
+        num_of_self_pawns = 0
+        num_of_enemy_pawns = 0
+        num_of_self_kings = 0
+        num_of_enemy_kings = 0
+        num_enemy_on_edge = 0
+        num_self_on_edge = 0
+        for piece in self.game.board.pieces:
+            if piece.captured:
+                continue
+            if piece.king:
+                if piece.player == self.player:
+                    num_of_self_kings += 1
+                else:
+                    num_of_enemy_kings += 1
+            else:
+                if piece.player == self.player:
+                    num_of_self_pawns += 1
+                    if adjacent_to_the_edge(self, piece.get_row(), piece.get_column()):
+                        num_self_on_edge += 1
+                else:
+                    num_of_enemy_pawns += 1
+                    if adjacent_to_the_edge(self, piece.get_row(), piece.get_column()):
+                        num_enemy_on_edge += 1
+
+        if num_of_enemy_pawns > 3 and num_of_self_pawns > 3:
+            if num_of_enemy_kings == 0 and num_of_self_kings == 0:
+                return 1
+            if num_of_enemy_kings > 0 or num_of_self_kings > 0:
+                return 2
+        else:
+            return 3
+
+    def adjacent_to_the_edge(self, i, j):
+        if i == 0 or j == 0 or i == 7 or j == 7:
+            return true
+        return false
+
+    def on_top_three_layers(self, i):
+        if 4 < i <= 7:
+            return true
+        return false
+
+    def centrally_positioned(self, i, j):
+        if 2 <= i <= 5 and 2 <= j <= 5:
+            return true
+        return false
+
+    def on_double_diagonal(self, i, j):
+        if i > 0:
+            if j == i-1:
+                return true
+        if j > 0:
+            if i == i-1:
+                return true
+        return false
+
+    # white on 1 2 6
+    def triangle(self):
+        return false;
+
+    # white on 2 3 7
+    def oreo(self):
+        return false
+
+    # white on 1 3
+    def bridge(self):
+        return false
+
+    # white on 1 black on 5
+    def dog(self):
+        return false
+
+    # white king on 29
+    def king_in_corner(self):
+        return false
 
     def add_children(self, children):
         self.children.append(children)
