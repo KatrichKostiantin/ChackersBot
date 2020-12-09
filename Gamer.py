@@ -80,6 +80,7 @@ class Gamer:
 
         move = self.find_best_move(current_game_progress['available_time'])
         #move = random.choice(self._game.get_possible_moves())
+        #await asyncio.sleep(2.0)
         logging.debug(f"Add move ({move}) to own game")
         self._game.move(move)
         await self._make_move(move)
