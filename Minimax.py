@@ -14,20 +14,20 @@ class Node:
         self.children = []
 
     def count_value(self):
-        res = 0
-        for piece in self.game.board.pieces:
-            if piece.captured:
-                continue
-            if piece.king:
-                if piece.player == self.player:
-                    res += 4
-                else:
-                    res -= 4
-            else:
-                if piece.player == self.player:
-                    res += 1
-                else:
-                    res -= 1
+        res = self.curr_stage()
+        # for piece in self.game.board.pieces:
+        #    if piece.captured:
+        #        continue
+        #    if piece.king:
+        #        if piece.player == self.player:
+        #            res += 4
+        #        else:
+        #           res -= 4
+        #    else:
+        #        if piece.player == self.player:
+        #            res += 1
+        #       else:
+        #           res -= 1
 
         self.value = res
 
@@ -38,6 +38,10 @@ class Node:
         num_of_enemy_kings = 0
         num_enemy_on_edge = 0
         num_self_on_edge = 0
+        num_on_top_three = 0
+        num_center_king = 0
+        num_center_pawn = 0
+        num_double_diagonal_king = 0
         for piece in self.game.board.pieces:
             if piece.captured:
                 continue
@@ -46,29 +50,42 @@ class Node:
                     num_of_self_kings += 1
                 else:
                     num_of_enemy_kings += 1
+
+                if self.centrally_positioned(piece.get_row(), piece.get_column()):
+                    num_center_king += 1
+                if self.on_double_diagonal(piece.get_row(), piece.get_column()):
+                    num_double_diagonal_king += 1
             else:
                 if piece.player == self.player:
                     num_of_self_pawns += 1
-                    if self.adjacent_to_the_edge(self, piece.get_row(), piece.get_column()):
+                    if self.adjacent_to_the_edge(piece.get_row(), piece.get_column()):
                         num_self_on_edge += 1
+                    if self.on_top_three_layers(piece.get_column()):
+                        num_on_top_three += 1
                 else:
                     num_of_enemy_pawns += 1
-                    if self.adjacent_to_the_edge(self, piece.get_row(), piece.get_column()):
+                    if self.adjacent_to_the_edge(piece.get_row(), piece.get_column()):
                         num_enemy_on_edge += 1
 
+                if self.centrally_positioned(piece.get_row(), piece.get_column()):
+                    num_center_pawn += 1
+
+        res = num_self_on_edge + num_enemy_on_edge + num_on_top_three + num_center_king + num_center_pawn
+        res += num_double_diagonal_king + self.triangle()
         if num_of_enemy_pawns > 3 and num_of_self_pawns > 3:
             if num_of_enemy_kings == 0 and num_of_self_kings == 0:
-                return 1
+                return res
             if num_of_enemy_kings > 0 or num_of_self_kings > 0:
-                return 2
+                return res * 2
         else:
-            return 3
+            return res * 3
 
     def adjacent_to_the_edge(self, i, j):
         if i == 0 or j == 0 or i == 7 or j == 7:
             return True
         return False
 
+    # ????
     def on_top_three_layers(self, i):
         if 4 < i <= 7:
             return True
@@ -90,23 +107,60 @@ class Node:
 
     # white on 1 2 6
     def triangle(self):
-        return False
+        piece = self.game.board.searcher.get_piece_by_position(1)
+        res = True
+        if piece is None:
+            return False
+        else:
+            res = res and piece.player == 1
+
+        piece = self.game.board.searcher.get_piece_by_position(2)
+        if piece is None:
+            return False
+        else:
+            res and piece.player == 1
+
+        piece = self.game.board.searcher.get_piece_by_position(6)
+        if piece is None:
+            return False
+        else:
+            res and piece.player == 1
+
+        return res
 
     # white on 2 3 7
     def oreo(self):
-        return False
+        pieces = self.game.board.searcher.get_pieces_by_player(1)
+        if pieces.get(2) == 0:
+            return False
+        if pieces.get(3) == 0:
+            return False
+        if pieces.get(7) == 0:
+            return False
+        return True
 
     # white on 1 3
     def bridge(self):
-        return False
+        pieces = self.game.board.searcher.get_pieces_by_player(1)
+        if pieces.get(1) == 0:
+            return False
+        if pieces.get(3) == 0:
+            return False
+        return True
 
     # white on 1 black on 5
     def dog(self):
-        return False
+        if self.game.board.searcher.get_pieces_by_player(1).get(1) == 0:
+            return False
+        if self.game.board.searcher.get_pieces_by_player(2).get(3) == 0:
+            return False
+        return True
 
     # white king on 29
     def king_in_corner(self):
-        return False
+        if self.game.board.searcher.get_pieces_by_player(1).get(29) == 0:
+            return False
+        return self.game.board.searcher.get_pieces_by_player(1).get(29).king
 
     def add_children(self, children):
         self.children.append(children)
