@@ -71,7 +71,7 @@ class Node:
                     num_center_pawn += 1
 
         res = num_self_on_edge + num_enemy_on_edge + num_on_top_three + num_center_king + num_center_pawn
-        res += num_double_diagonal_king + self.triangle()
+        res += num_double_diagonal_king + self.triangle() + self.bridge() + self.dog() + self.oreo()
         if num_of_enemy_pawns > 3 and num_of_self_pawns > 3:
             if num_of_enemy_kings == 0 and num_of_self_kings == 0:
                 return res
@@ -107,60 +107,38 @@ class Node:
 
     # white on 1 2 6
     def triangle(self):
-        piece = self.game.board.searcher.get_piece_by_position(1)
-        res = True
+        return self.on_position_white(1) and self.on_position_white(2) and self.on_position_white(6)
+
+    def on_position_white(self, i):
+        piece = self.game.board.searcher.get_piece_by_position(i)
         if piece is None:
             return False
-        else:
-            res = res and piece.player == 1
+        return piece.player == 1
 
-        piece = self.game.board.searcher.get_piece_by_position(2)
+    def on_position_black(self, i):
+        piece = self.game.board.searcher.get_piece_by_position(i)
         if piece is None:
             return False
-        else:
-            res and piece.player == 1
-
-        piece = self.game.board.searcher.get_piece_by_position(6)
-        if piece is None:
-            return False
-        else:
-            res and piece.player == 1
-
-        return res
+        return piece.player == 2
 
     # white on 2 3 7
     def oreo(self):
-        pieces = self.game.board.searcher.get_pieces_by_player(1)
-        if pieces.get(2) == 0:
-            return False
-        if pieces.get(3) == 0:
-            return False
-        if pieces.get(7) == 0:
-            return False
-        return True
+        return self.on_position_white(2) and self.on_position_white(3) and self.on_position_white(7)
 
     # white on 1 3
     def bridge(self):
-        pieces = self.game.board.searcher.get_pieces_by_player(1)
-        if pieces.get(1) == 0:
-            return False
-        if pieces.get(3) == 0:
-            return False
-        return True
+        return self.on_position_white(1) and self.on_position_white(3)
 
     # white on 1 black on 5
     def dog(self):
-        if self.game.board.searcher.get_pieces_by_player(1).get(1) == 0:
-            return False
-        if self.game.board.searcher.get_pieces_by_player(2).get(3) == 0:
-            return False
-        return True
+        return self.on_position_white(1) and self.on_position_black(5)
 
     # white king on 29
     def king_in_corner(self):
-        if self.game.board.searcher.get_pieces_by_player(1).get(29) == 0:
+        piece = self.game.board.searcher.get_piece_by_position(29)
+        if piece is None:
             return False
-        return self.game.board.searcher.get_pieces_by_player(1).get(29).king
+        return piece.player == 2 and piece.king
 
     def add_children(self, children):
         self.children.append(children)
