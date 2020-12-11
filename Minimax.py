@@ -46,43 +46,45 @@ class Node:
         for piece in self.game.board.pieces:
             if piece.captured:
                 continue
+            row = piece.get_row()
+            column = piece.get_column() * 2 + 1 if row % 2 == 0 else piece.get_column() * 2
             if piece.king:
                 if piece.player == self.player:
                     num_dif_kings += 1
-                    if self.centrally_positioned(piece.get_row(), piece.get_column()):
+                    if self.centrally_positioned(row, column):
                         num_dif_center_king += 1
-                    if self.adjacent_to_the_edge(piece.get_row(), piece.get_column()):
+                    if self.adjacent_to_the_edge(row, column):
                         num_dif_on_edge_king += 1
-                    if self.on_lower_two_layers(piece.get_column(), piece.player):
+                    if self.on_lower_two_layers(column, piece.player):
                         num_dif_defend_pieces += 1
                 else:
                     num_dif_kings -= 1
-                    if self.centrally_positioned(piece.get_row(), piece.get_column()):
+                    if self.centrally_positioned(row, column):
                         num_dif_center_king -= 1
-                    if self.adjacent_to_the_edge(piece.get_row(), piece.get_column()):
+                    if self.adjacent_to_the_edge(row, column):
                         num_dif_on_edge_king -= 1
-                    if self.on_lower_two_layers(piece.get_column(), piece.player):
+                    if self.on_lower_two_layers(column, piece.player):
                         num_dif_defend_pieces -= 1
             else:
                 if piece.player == self.player:
                     num_dif_pawns += 1
-                    if self.adjacent_to_the_edge(piece.get_row(), piece.get_column()):
+                    if self.adjacent_to_the_edge(row, column):
                         num_dif_on_edge_pawn += 1
-                    if self.on_top_three_layers(piece.get_column(), piece.player):
+                    if self.on_top_three_layers(column, piece.player):
                         num_dif_on_top_three += 1
-                    if self.centrally_positioned(piece.get_row(), piece.get_column()):
+                    if self.centrally_positioned(row, piece.get_column()):
                         num_dif_center_pawn += 1
-                    if self.on_lower_two_layers(piece.get_column(), piece.player):
+                    if self.on_lower_two_layers(column, piece.player):
                         num_dif_defend_pieces += 1
                 else:
                     num_dif_pawns -= 1
-                    if self.adjacent_to_the_edge(piece.get_row(), piece.get_column()):
+                    if self.adjacent_to_the_edge(row, column):
                         num_dif_on_edge_pawn -= 1
-                    if self.on_top_three_layers(piece.get_column(), piece.player):
+                    if self.on_top_three_layers(column, piece.player):
                         num_dif_on_top_three -= 1
-                    if self.centrally_positioned(piece.get_row(), piece.get_column()):
+                    if self.centrally_positioned(row, column):
                         num_dif_center_pawn -= 1
-                    if self.on_lower_two_layers(piece.get_column(), piece.player):
+                    if self.on_lower_two_layers(column, piece.player):
                         num_dif_defend_pieces -= 1
 
         if self.player == 1:
@@ -198,7 +200,7 @@ class Minimax:
         self.player_num = game.whose_turn()
         start_time = datetime.datetime.now()
         logging.debug(f"Try find_best_move start_time = {start_time}, available_time = {available_time}")
-        root_node = self.create_tree(game, start_time + datetime.timedelta(milliseconds=(available_time * 0.9) * 1000),
+        root_node = self.create_tree(game, start_time + datetime.timedelta(milliseconds=(available_time * 0.8) * 1000),
                                      heuristic)
         best_move = self.choice_best_move(root_node)
         logging.debug(f"Return best move({best_move})")
@@ -219,7 +221,7 @@ class Minimax:
         logging.debug(f"End recursive_child_creation on {datetime.datetime.now()}")
 
     def creating_node_children(self, node, node_init_queue, available_time_to):
-        logging.debug(f"All moves {node.game.get_possible_moves()}")
+        #logging.debug(f"All moves {node.game.get_possible_moves()}")
         for move in node.game.get_possible_moves():
             if datetime.datetime.now() > available_time_to:
                 return

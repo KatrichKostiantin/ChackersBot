@@ -43,11 +43,11 @@ class Gamer:
                 headers=headers
         ) as resp:
             resp = (await resp.json())['data']
-            logging.debug(f'Response from server: {resp}')
+            logging.info(f'Response from server: {resp}')
 
     async def _get_progress_game(self):
         async with self._session.get(f'{self._api_url}/game') as resp:
-            logging.debug(f'Response status: {resp.status}')
+            logging.info(f'Response status: {resp.status}')
             return (await resp.json())['data']
 
     def start(self):
