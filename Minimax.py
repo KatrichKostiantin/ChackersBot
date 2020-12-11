@@ -1,3 +1,4 @@
+import concurrent
 import datetime
 import logging
 from copy import deepcopy
@@ -5,7 +6,8 @@ from queue import Queue
 
 
 class Node:
-    def __init__(self, game, move, player, player_moved):
+    def __init__(self, game, move, player, player_moved, heuristic):
+        self.heuristic = heuristic
         self.game = game
         self.move = move
         self.player = player
@@ -65,9 +67,15 @@ class Node:
                 else:
                     num_of_enemy_pawns += 1
 
-        res = 3*num_on_edge + 2*num_on_top_three + 5*num_center_king + 2*num_center_pawn + 4*num_double_diagonal_king
-        res += 3*self.triangle() + 1*self.bridge() + 2*self.dog() + 2*self.oreo() + 4*self.king_in_corner()
-
+        # res = 2 * num_of_self_pawns + 4 * num_of_self_kings
+        # res += 2 * num_on_edge + 3 * num_on_top_three + 1 * num_center_king + 1 * num_center_pawn + 1 * num_double_diagonal_king
+        # res -= 2 * num_of_enemy_pawns + 2 * num_of_enemy_kings
+        # res += 1 * self.triangle() + 1 * self.bridge() + 1 * self.dog() + 1 * self.oreo() + 1 * self.king_in_corner()
+        res = self.heuristic.count_heuristic(
+            num_of_self_pawns, num_of_self_kings,
+            num_of_enemy_pawns, num_of_enemy_kings,
+            num_on_edge, num_on_top_three
+        )
         if num_of_enemy_pawns > 3 and num_of_self_pawns > 3:
             if num_of_enemy_kings == 0 and num_of_self_kings == 0:
                 return res
@@ -162,61 +170,64 @@ class Minimax:
     def __init__(self):
         self.player_num = None
 
-    def find_best_move(self, available_time, game):
-        logging.debug("Try find_best_move")
+    def find_best_move(self, available_time, game, heuristic):
         self.player_num = game.whose_turn()
         start_time = datetime.datetime.now()
-        logging.debug(f"start_time = {start_time}, available_time = {available_time}")
-        root_node = self.create_tree(game, start_time + datetime.timedelta(milliseconds=(available_time - 2.0) * 1000))
+        logging.debug(f"Try find_best_move start_time = {start_time}, available_time = {available_time}")
+        root_node = self.create_tree(game, start_time + datetime.timedelta(milliseconds=(available_time * 0.9) * 1000),
+                                     heuristic)
         best_move = self.choice_best_move(root_node)
         logging.debug(f"Return best move({best_move})")
         return best_move
 
-    def create_tree(self, game, available_time_to):
+    def create_tree(self, game, available_time_to, heuristic):
         logging.debug(f"Try create_tree, available_time_to = {available_time_to}")
-        root = Node(game, None, self.player_num, 2 if self.player_num is 1 else 1)
+        root = Node(game, None, self.player_num, 2 if self.player_num == 1 else 1, heuristic)
         node_init_queue = Queue(maxsize=99999999)
         node_init_queue.put(root)
         self.recursive_child_creation(node_init_queue, available_time_to)
         return root
 
     def recursive_child_creation(self, node_init_queue, available_time_to):
-        while datetime.datetime.now() < available_time_to:
+        while datetime.datetime.now() < available_time_to and node_init_queue.qsize() > 0:
             node = node_init_queue.get()
             self.creating_node_children(node, node_init_queue, available_time_to)
         logging.debug(f"End recursive_child_creation on {datetime.datetime.now()}")
 
     def creating_node_children(self, node, node_init_queue, available_time_to):
+        logging.debug(f"All moves {node.game.get_possible_moves()}")
         for move in node.game.get_possible_moves():
             if datetime.datetime.now() > available_time_to:
                 return
             copy_game = deepcopy(node.game)
             player_moved = copy_game.whose_turn()
             copy_game.move(move)
-            new_node = Node(copy_game, move, self.player_num, player_moved)
+            new_node = Node(copy_game, move, self.player_num, player_moved, node.heuristic)
             node.add_children(new_node)
+            if copy_game.is_over():
+                continue
             node_init_queue.put(new_node)
 
     def choice_best_move(self, root_node):
-        self.iterative_deep_alpha_beta(root_node, -100, 100)
+        self.iterative_deep_alpha_beta(root_node, -1000, 1000)
 
         for node in root_node.children:
             if node.value is root_node.value:
                 return node.move
 
     def iterative_deep_alpha_beta(self, node, alpha, beta):
-        if len(node.children) is 0:
+        if len(node.children) == 0:
             node.count_value()
             return node.value
         if node.player_moved is not self.player_num:
-            node.value = -100
+            node.value = -1000
             for child in node.children:
                 node.value = max(node.value, self.iterative_deep_alpha_beta(child, alpha, beta))
                 alpha = max(alpha, node.value)
                 if alpha > beta:
                     break
         else:
-            node.value = 100
+            node.value = 1000
             for child in node.children:
                 node.value = min(node.value, self.iterative_deep_alpha_beta(child, alpha, beta))
                 beta = min(alpha, node.value)

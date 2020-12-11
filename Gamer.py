@@ -13,12 +13,14 @@ game = Game()
 
 
 class Gamer:
-    def __init__(self, connection_config, loop):
+    def __init__(self, connection_config, heuristic, local_game=None, player_num=None):
+        self.heuristic = heuristic
         self._config = connection_config
         self._api_url = f"http://{self._config['ip']}:{self._config['port']}"
         self._session = aiohttp.ClientSession()
         self._game = game
-        self._loop = loop
+        self.local_game = local_game
+        self.player_num = player_num
 
     async def _prepare_player(self, team_name):
         logging.info(f'Prepare bot name:{team_name}')
@@ -49,9 +51,9 @@ class Gamer:
             return (await resp.json())['data']
 
     def start(self):
-        asyncio.run_coroutine_threadsafe(self.start_playing(), self._loop)
+        asyncio.run_coroutine_threadsafe(self.start_playing_on_server(), self._loop)
 
-    async def start_playing(self):
+    async def start_playing_on_server(self):
         logging.basicConfig(level=logging.getLevelName(self._config['logging']),
                             format='%(asctime)s %(levelname)s %(message)s',
                             datefmt='%H:%M:%S')
@@ -78,9 +80,9 @@ class Gamer:
             return
         self.read_opponent_move(current_game_progress)
 
-        move = self.find_best_move(current_game_progress['available_time'])
+        move = self.find_best_move(current_game_progress['available_time'], self._game)
         #move = random.choice(self._game.get_possible_moves())
-        #await asyncio.sleep(2.0)
+        # await asyncio.sleep(2.0)
         logging.debug(f"Add move ({move}) to own game")
         self._game.move(move)
         await self._make_move(move)
@@ -94,6 +96,14 @@ class Gamer:
                 for move in opponent_move['last_moves']:
                     self._game.move(move)
 
-    def find_best_move(self, available_time):
-        logging.info(f"Try find best move with available_time = {available_time}")
-        return Minimax().find_best_move(available_time, self._game)
+    async def try_move_on_local(self):
+        if self.local_game.is_over():
+            await self._session.close()
+            return
+        if self.local_game.whose_turn() == self.player_num:
+            #self.local_game.move(random.choice(self.local_game.get_possible_moves()))
+            self.local_game.move(self.find_best_move(self._config['time_to_move'], self.local_game))
+
+    def find_best_move(self, available_time, enter_game):
+        logging.debug(f"Try find best local move with available_time = {available_time}")
+        return Minimax().find_best_move(available_time, enter_game, self.heuristic)
