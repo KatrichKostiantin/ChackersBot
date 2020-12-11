@@ -34,63 +34,96 @@ class Node:
         self.value = res
 
     def curr_stage(self):
-        num_of_self_pawns = 0
-        num_of_enemy_pawns = 0
-        num_of_self_kings = 0
-        num_of_enemy_kings = 0
-        num_on_edge = 0
-        num_on_top_three = 0
-        num_center_king = 0
-        num_center_pawn = 0
-        num_double_diagonal_king = 0
+        num_dif_pawns = 0
+        num_dif_kings = 0
+        num_dif_on_edge_pawn = 0
+        num_dif_on_edge_king = 0
+        num_dif_defend_pieces = 0
+        num_dif_on_top_three = 0
+        num_dif_center_king = 0
+        num_dif_center_pawn = 0
+
         for piece in self.game.board.pieces:
             if piece.captured:
                 continue
             if piece.king:
                 if piece.player == self.player:
-                    num_of_self_kings += 1
+                    num_dif_kings += 1
                     if self.centrally_positioned(piece.get_row(), piece.get_column()):
-                        num_center_king += 1
-                    if self.on_double_diagonal(piece.get_row(), piece.get_column()):
-                        num_double_diagonal_king += 1
+                        num_dif_center_king += 1
+                    if self.adjacent_to_the_edge(piece.get_row(), piece.get_column()):
+                        num_dif_on_edge_king += 1
+                    if self.on_lower_two_layers(piece.get_column(), piece.player):
+                        num_dif_defend_pieces += 1
                 else:
-                    num_of_enemy_kings += 1
+                    num_dif_kings -= 1
+                    if self.centrally_positioned(piece.get_row(), piece.get_column()):
+                        num_dif_center_king -= 1
+                    if self.adjacent_to_the_edge(piece.get_row(), piece.get_column()):
+                        num_dif_on_edge_king -= 1
+                    if self.on_lower_two_layers(piece.get_column(), piece.player):
+                        num_dif_defend_pieces -= 1
             else:
                 if piece.player == self.player:
-                    num_of_self_pawns += 1
+                    num_dif_pawns += 1
                     if self.adjacent_to_the_edge(piece.get_row(), piece.get_column()):
-                        num_on_edge += 1
-                    if self.on_top_three_layers(piece.get_column()):
-                        num_on_top_three += 1
+                        num_dif_on_edge_pawn += 1
+                    if self.on_top_three_layers(piece.get_column(), piece.player):
+                        num_dif_on_top_three += 1
                     if self.centrally_positioned(piece.get_row(), piece.get_column()):
-                        num_center_pawn += 1
+                        num_dif_center_pawn += 1
+                    if self.on_lower_two_layers(piece.get_column(), piece.player):
+                        num_dif_defend_pieces += 1
                 else:
-                    num_of_enemy_pawns += 1
+                    num_dif_pawns -= 1
+                    if self.adjacent_to_the_edge(piece.get_row(), piece.get_column()):
+                        num_dif_on_edge_pawn -= 1
+                    if self.on_top_three_layers(piece.get_column(), piece.player):
+                        num_dif_on_top_three -= 1
+                    if self.centrally_positioned(piece.get_row(), piece.get_column()):
+                        num_dif_center_pawn -= 1
+                    if self.on_lower_two_layers(piece.get_column(), piece.player):
+                        num_dif_defend_pieces -= 1
 
-        # res = 2 * num_of_self_pawns + 4 * num_of_self_kings
-        # res += 2 * num_on_edge + 3 * num_on_top_three + 1 * num_center_king + 1 * num_center_pawn + 1 * num_double_diagonal_king
-        # res -= 2 * num_of_enemy_pawns + 2 * num_of_enemy_kings
-        # res += 1 * self.triangle() + 1 * self.bridge() + 1 * self.dog() + 1 * self.oreo() + 1 * self.king_in_corner()
-        res = self.heuristic.count_heuristic(
-            num_of_self_pawns, num_of_self_kings,
-            num_of_enemy_pawns, num_of_enemy_kings,
-            num_on_edge, num_on_top_three
-        )
-        if num_of_enemy_pawns > 3 and num_of_self_pawns > 3:
-            if num_of_enemy_kings == 0 and num_of_self_kings == 0:
-                return res
-            if num_of_enemy_kings > 0 or num_of_self_kings > 0:
-                return res
+        if self.player == 1:
+            dif_triangle = self.triangle(1) - self.triangle(2)
+            dif_bridge = self.bridge(1) - self.bridge(2)
+            dif_dog = self.dog(1) - self.dog(2)
+            dif_oreo = self.oreo(1) - self.oreo(2)
+            dif_kings_corner = self.king_in_corner(1) - self.king_in_corner(2)
         else:
-            return res
+            dif_triangle = self.triangle(2) - self.triangle(1)
+            dif_bridge = self.bridge(2) - self.bridge(1)
+            dif_dog = self.dog(2) - self.dog(1)
+            dif_oreo = self.oreo(2) - self.oreo(1)
+            dif_kings_corner = self.king_in_corner(2) - self.king_in_corner(1)
+
+        res = self.heuristic.count_heuristic(
+            num_dif_pawns, num_dif_kings,
+            num_dif_on_edge_pawn, num_dif_on_edge_king,
+            num_dif_defend_pieces, num_dif_on_top_three,
+            num_dif_center_king, num_dif_center_pawn,
+            dif_triangle, dif_bridge, dif_dog, dif_oreo, dif_kings_corner
+        )
+        return res
 
     def adjacent_to_the_edge(self, i, j):
         if i == 0 or j == 0 or i == 7 or j == 7:
             return True
         return False
 
-    def on_top_three_layers(self, i):
-        if self.player == 1:
+    def on_lower_two_layers(self, i, player):
+        if player == 1:
+            if 0 <= i <= 1:
+                return True
+            return False
+        else:
+            if 6 <= i <= 7:
+                return True
+            return False
+
+    def on_top_three_layers(self, i, player):
+        if player == 1:
             if 4 < i <= 7:
                 return True
             return False
@@ -102,15 +135,6 @@ class Node:
     def centrally_positioned(self, i, j):
         if 2 <= i <= 5 and 2 <= j <= 5:
             return True
-        return False
-
-    def on_double_diagonal(self, i, j):
-        if i > 0:
-            if j == i - 1:
-                return True
-        if j > 0:
-            if i == i - 1:
-                return True
         return False
 
     def on_position_white(self, i):
@@ -126,32 +150,32 @@ class Node:
         return piece.player == 2
 
     # white on 1 2 6 / black on 27 31 32
-    def triangle(self):
-        if self.player == 1:
+    def triangle(self, player):
+        if player == 1:
             return self.on_position_white(1) and self.on_position_white(2) and self.on_position_white(6)
         return self.on_position_black(27) and self.on_position_black(31) and self.on_position_black(32)
 
     # white on 2 3 7 / black on 26 30 31
-    def oreo(self):
-        if self.player == 1:
+    def oreo(self, player):
+        if player == 1:
             return self.on_position_white(2) and self.on_position_white(3) and self.on_position_white(7)
         return self.on_position_black(26) and self.on_position_black(30) and self.on_position_black(31)
 
     # white on 1 3 / black on 30, 32
-    def bridge(self):
-        if self.player == 1:
+    def bridge(self, player):
+        if player == 1:
             return self.on_position_white(1) and self.on_position_white(3)
         return self.on_position_black(30) and self.on_position_black(32)
 
     # white on 1 black on 5/ black on 32 white on 28
-    def dog(self):
-        if self.player == 1:
+    def dog(self, player):
+        if player == 1:
             return self.on_position_white(1) and self.on_position_black(5)
         return self.on_position_white(28) and self.on_position_black(32)
 
-    # white king on 29
-    def king_in_corner(self):
-        if self.player == 1:
+    # white king on 29/ black king on 4
+    def king_in_corner(self, player):
+        if player == 1:
             piece = self.game.board.searcher.get_piece_by_position(29)
             if piece is None:
                 return False

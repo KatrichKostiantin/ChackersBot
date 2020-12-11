@@ -33,7 +33,7 @@ class Battleground:
 
     def start_n_battles(self, heuristic_1, heuristic_2, futures_list, win_counter_1, win_counter_2):
         logging.info(f"Start all battles at {datetime.now()}")
-        for i in itertools.repeat(None, 2):
+        for i in itertools.repeat(None, 3):
             futures = asyncio.create_task(self.start_one_battle(heuristic_1, heuristic_2))
             futures.add_done_callback(lambda f: self.__win(f.result(), win_counter_1, win_counter_2))
             futures.set_name(f"future {i}")
@@ -77,7 +77,7 @@ class FastReadCounter(object):
 
 
 if __name__ == '__main__':
-    heuristic_1 = Heuristic(1, 1, 1, 1, 0, 0)
-    heuristic_2 = Heuristic(1, 3, 1, 3, 0, 0)
+    heuristic_1 = Heuristic(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+    heuristic_2 = Heuristic(1, 4, 2, 3, 2, 3, 2, 3, 1, 1, 1, 1, 1)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(Battleground().start(heuristic_1, heuristic_2))
