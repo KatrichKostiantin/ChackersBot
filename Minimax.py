@@ -46,8 +46,8 @@ class Node:
         for piece in self.game.board.pieces:
             if piece.captured:
                 continue
-            row = piece.get_row()
-            column = piece.get_column() * 2 + 1 if row % 2 == 0 else piece.get_column() * 2
+            column = piece.get_row()
+            row = piece.get_column() * 2 + 1 if row % 2 == 0 else piece.get_column() * 2
             if piece.king:
                 if piece.player == self.player:
                     num_dif_kings += 1
